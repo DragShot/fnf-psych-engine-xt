@@ -271,7 +271,7 @@ class TitleState extends MusicBeatState
 		// bg.updateHitbox();
 		add(bg);
 
-		logoBl = new FlxSprite(titleJSON.titlex, titleJSON.titley);
+		logoBl = new FlxSprite(titleJSON.titlex, titleJSON.titley + FlxG.height); //
 		logoBl.frames = Paths.getSparrowAtlas('logoBumpin');
 
 		logoBl.antialiasing = ClientPrefs.globalAntialiasing;
@@ -407,7 +407,21 @@ class TitleState extends MusicBeatState
 
 	function getIntroTextShit():Array<Array<String>>
 	{
+		#if (desktop && MODS_ALLOWED)
+		var path = "mods/" + Paths.currentModDirectory + "/data/introText.txt";
+		//trace(path, FileSystem.exists(path));
+		if (Paths.currentModDirectory == null || Paths.currentModDirectory == '' || !FileSystem.exists(path)) {
+			path = "mods/data/introText.txt";
+		}
+		//trace(path, FileSystem.exists(path));
+		if (!FileSystem.exists(path)) {
+			path = "assets/data/introText.txt";
+		}
+		//trace(path, FileSystem.exists(path));
+		var fullText:String = File.getContent(path);
+		#else
 		var fullText:String = Assets.getText(Paths.txt('introText'));
+		#end
 
 		var firstArray:Array<String> = fullText.split('\n');
 		var swagGoodArray:Array<Array<String>> = [];
@@ -772,6 +786,17 @@ class TitleState extends MusicBeatState
 				}
 				#end
 			}
+			//From Kade codebase
+			FlxTween.tween(logoBl,{y: titleJSON.titley}, 1.4, {ease: FlxEase.expoInOut});
+			logoBl.angle = -4;
+			new FlxTimer().start(0.01, function(tmr:FlxTimer)
+				{
+					if(logoBl.angle == -4) 
+						FlxTween.angle(logoBl, logoBl.angle, 4, 4, {ease: FlxEase.quartInOut});
+					if (logoBl.angle == 4) 
+						FlxTween.angle(logoBl, logoBl.angle, -4, 4, {ease: FlxEase.quartInOut});
+				}, 0);
+			//
 			skippedIntro = true;
 		}
 	}

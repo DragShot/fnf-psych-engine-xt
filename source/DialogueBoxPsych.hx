@@ -19,6 +19,8 @@ import sys.io.File;
 #end
 import openfl.utils.Assets;
 
+import flash.media.Sound;
+
 using StringTools;
 
 typedef DialogueCharacterFile = {
@@ -492,7 +494,10 @@ class DialogueBoxPsych extends FlxSpriteGroup
 
 		daText.text = curDialogue.text;
 		daText.sound = curDialogue.sound;
-		if(daText.sound == null || daText.sound.trim() == '') daText.sound = 'dialogue';
+		if (daText.sound == null || daText.sound.trim() == '') {
+			var sound = fetchSound(curDialogue.portrait); //Character-related default typing sounds
+			daText.sound = sound != null ? sound : 'dialogue'; //
+		}
 		
 		daText.y = DEFAULT_TEXT_Y;
 		if(daText.rows > 2) daText.y -= LONG_TEXT_ADD;
@@ -513,6 +518,38 @@ class DialogueBoxPsych extends FlxSpriteGroup
 			nextDialogueThing();
 		}
 	}
+
+	//Character-related default typing sounds
+	public static function fetchSound(name:String):Dynamic {
+		var sound:String = null;
+		#if (desktop && MODS_ALLOWED)
+		var paths:Array<String> = [
+			'mods/' + Paths.currentModDirectory + '/sounds/dialogue/$name.ogg',
+			'mods/sounds/dialogue/$name.ogg',
+			Paths.getPath('dialogue/$name.${Paths.SOUND_EXT}', SOUND) //Paths.sound('dialogue/$name')
+		];
+		for (path in paths) {
+			//trace('-> Looking for: ' + path);
+			if (FileSystem.exists(path)) {
+				sound = 'dialogue/$name'; //Loading the file is now handled in Paths
+				break;
+			}
+		}
+		#else
+		var paths:Array<String> = [
+			Paths.getPath('dialogue/$name.${Paths.SOUND_EXT}', SOUND), //Paths.sound('dialogue/$name'),
+			Paths.getPath('dialogue.${Paths.SOUND_EXT}', SOUND) //Paths.sound('dialogue')
+		];
+		for (path in paths) {
+			if (Assets.exists(path)) {
+				sound = 'dialogue/$name';
+				break;
+			}
+		}
+		#end
+		return sound;
+	}
+	//
 
 	public static function parseDialogue(path:String):DialogueFile {
 		#if MODS_ALLOWED

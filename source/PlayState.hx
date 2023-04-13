@@ -142,6 +142,7 @@ class PlayState extends MusicBeatState
 	public var dadGroup:FlxSpriteGroup;
 	public var gfGroup:FlxSpriteGroup;
 	public static var curStage:String = '';
+	public static var curFolder:String = ''; //XT: Data folder
 	public static var isPixelStage:Bool = false;
 	public static var SONG:SwagSong = null;
 	public static var isStoryMode:Bool = false;
@@ -222,6 +223,7 @@ class PlayState extends MusicBeatState
 
 	var dialogue:Array<String> = ['blah blah blah', 'coolswag'];
 	var dialogueJson:DialogueFile = null;
+	var dialogueEndJson:DialogueFile = null; //
 
 	var dadbattleBlack:BGSprite;
 	var dadbattleLight:BGSprite;
@@ -409,8 +411,10 @@ class PlayState extends MusicBeatState
 		persistentUpdate = true;
 		persistentDraw = true;
 
-		if (SONG == null)
+		if (SONG == null) {
+			PlayState.curFolder = 'tutorial'; //XT: Data folder
 			SONG = Song.loadFromJson('tutorial');
+		}
 
 		Conductor.mapBPMChanges(SONG);
 		Conductor.changeBPM(SONG.bpm);
@@ -992,10 +996,19 @@ class PlayState extends MusicBeatState
 				addBehindDad(evilTrail);
 		}
 
-		var file:String = Paths.json(songName + '/dialogue'); //Checks for json/Psych Engine dialogue
+		//XT: Dialogue autoload
+		dialogueJson = null; //
+		dialogueEndJson = null; //
+
+		trace('Data Folder: $curFolder');
+		dialogueJson = loadPsychDialogue(curFolder);
+		dialogueEndJson = loadPsychDialogue(curFolder, '-end');
+		
+		/*var file:String = Paths.json(songName + '/dialogue'); //Checks for json/Psych Engine dialogue
 		if (OpenFlAssets.exists(file)) {
 			dialogueJson = DialogueBoxPsych.parseDialogue(file);
-		}
+		}*/
+		//
 
 		var file:String = Paths.txt(songName + '/' + songName + 'Dialogue'); //Checks for vanilla/Senpai dialogue
 		if (OpenFlAssets.exists(file)) {
@@ -1138,14 +1151,14 @@ class PlayState extends MusicBeatState
 		scoreTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		scoreTxt.scrollFactor.set();
 		scoreTxt.borderSize = 1.25;
-		scoreTxt.visible = !ClientPrefs.hideHud;
+		scoreTxt.visible = !ClientPrefs.hideHud && !cpuControlled; //XT: Botplay
 		add(scoreTxt);
 
 		botplayTxt = new FlxText(400, timeBarBG.y + 55, FlxG.width - 800, "BOTPLAY", 32);
 		botplayTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		botplayTxt.scrollFactor.set();
 		botplayTxt.borderSize = 1.25;
-		botplayTxt.visible = cpuControlled;
+		botplayTxt.visible = false; //cpuControlled; //XT: Botplay
 		add(botplayTxt);
 		if(ClientPrefs.downScroll) {
 			botplayTxt.y = timeBarBG.y - 78;
@@ -1291,7 +1304,7 @@ class PlayState extends MusicBeatState
 				default:
 					startCountdown();
 			}
-			seenCutscene = true;
+			//seenCutscene = true; //XT
 		}
 		else
 		{
@@ -1347,6 +1360,49 @@ class PlayState extends MusicBeatState
 		CustomFadeTransition.nextCamera = camOther;
 		if(eventNotes.length < 1) checkEventNote();
 	}
+
+	//XT: Dialogue autoload + Language Support
+	public function searchPsychDialogue(songName:String, file:String = 'dialogue'):String {
+		var resp:String = null;
+		
+		#if (desktop && MODS_ALLOWED)
+		var paths:Array<String> = [
+			'mods/' + Paths.currentModDirectory + '/data/$songName/$file${LanguageSupport.currentLangExt()}.json',
+			'mods/data/$songName/$file${LanguageSupport.currentLangExt()}.json',
+			Paths.json(songName + '/$file${LanguageSupport.currentLangExt()}'),
+			'mods/' + Paths.currentModDirectory + '/data/$songName/$file.json',
+			'mods/data/$songName/$file.json',
+			Paths.json(songName + '/$file')
+		];
+		for (path in paths) {
+			if (FileSystem.exists(path)) {
+				trace('Autodialogue found: $path');
+				resp = path;
+				break;
+			}
+		}
+		#else
+		var paths:Array<String> = [
+			Paths.json(songName + '/$file${LanguageSupport.currentLangExt()}'),
+			Paths.json(songName + '/$file')
+		];
+		for (path in paths) {
+			if (OpenFlAssets.exists(path)) {
+				resp = path;
+				break;
+			}
+		}
+		#end
+		return resp;
+	}
+
+	function loadPsychDialogue(songName:String, suffix:String = ''):DialogueFile {
+		var path:String = searchPsychDialogue(songName, 'dialogue' + suffix);
+		var diag:DialogueFile = null;
+		if (path != null) diag = DialogueBoxPsych.parseDialogue(path);
+		return diag;
+	}
+	//
 
 	#if (!flash && sys)
 	public var runtimeShaders:Map<String, Array<String>> = new Map<String, Array<String>>();
@@ -1456,8 +1512,9 @@ class PlayState extends MusicBeatState
 
 		if(luaDebugGroup.members.length > 34) {
 			var blah = luaDebugGroup.members[34];
-			blah.destroy();
+			//blah.destroy(); //??
 			luaDebugGroup.remove(blah);
+			blah.destroy(); //XT
 		}
 		luaDebugGroup.insert(0, new DebugLuaText(text, luaDebugGroup, color));
 		#end
@@ -1611,11 +1668,13 @@ class PlayState extends MusicBeatState
 			if(endingSong) {
 				psychDialogue.finishThing = function() {
 					psychDialogue = null;
+					dialogueEndJson = null; //XT: Dialogue autoload
 					endSong();
 				}
 			} else {
 				psychDialogue.finishThing = function() {
 					psychDialogue = null;
+					dialogueJson = null; //XT: Dialogue autoload
 					startCountdown();
 				}
 			}
@@ -1626,8 +1685,10 @@ class PlayState extends MusicBeatState
 		} else {
 			FlxG.log.warn('Your dialogue file is badly formatted!');
 			if(endingSong) {
+				dialogueEndJson = null; //XT: Dialogue autoload
 				endSong();
 			} else {
+				dialogueJson = null; //XT: Dialogue autoload
 				startCountdown();
 			}
 		}
@@ -2048,7 +2109,16 @@ class PlayState extends MusicBeatState
 
 		inCutscene = false;
 		var ret:Dynamic = callOnLuas('onStartCountdown', [], false);
-		if(ret != FunkinLua.Function_Stop) {
+		//XT: Dialogue autoload
+		if (ret == FunkinLua.Function_Stop) {
+			seenCutscene = true; //Cancel the autoload, the script will most likely handle it
+		} else {
+			if (dialogueJson != null && isStoryMode && !seenCutscene) {
+				seenCutscene = true;
+				startDialogue(dialogueJson);
+				return;
+			}
+		//
 			if (skipCountdown || startOnTime > 0) skipArrowStartTween = true;
 
 			generateStaticArrows(0);
@@ -2966,6 +3036,9 @@ class PlayState extends MusicBeatState
 			}
 		}
 
+		if (cpuControlled && FlxG.keys.justPressed.ONE) //XT: HUD toggle
+			camHUD.visible = !camHUD.visible;
+
 		super.update(elapsed);
 
 		setOnLuas('curDecStep', curDecStep);
@@ -2975,6 +3048,8 @@ class PlayState extends MusicBeatState
 			botplaySine += 180 * elapsed;
 			botplayTxt.alpha = 1 - Math.sin((Math.PI * botplaySine) / 180);
 		}
+		scoreTxt.visible = !ClientPrefs.hideHud && !cpuControlled; //XT: Botplay
+		botplayTxt.visible = false; //XT: Botplay
 
 		if (controls.PAUSE && startedCountdown && canPause)
 		{
@@ -3890,6 +3965,18 @@ class PlayState extends MusicBeatState
 		#end
 
 		var ret:Dynamic = callOnLuas('onEndSong', [], false);
+		//XT: Dialogue autoload
+		if (ret != FunkinLua.Function_Stop && isStoryMode && dialogueEndJson != null) {
+			canPause = false;
+			endingSong = true;
+			camZooming = false;
+			inCutscene = true;
+			startDialogue(dialogueEndJson);
+			return;
+		} else {
+			dialogueEndJson = null;
+		}
+		//
 		if(ret != FunkinLua.Function_Stop && !transitioning) {
 			if (SONG.validScore)
 			{
@@ -3964,6 +4051,7 @@ class PlayState extends MusicBeatState
 					prevCamFollow = camFollow;
 					prevCamFollowPos = camFollowPos;
 
+					PlayState.curFolder = Paths.formatToSongPath(PlayState.storyPlaylist[0]); //XT: Data folder
 					PlayState.SONG = Song.loadFromJson(PlayState.storyPlaylist[0] + difficulty, PlayState.storyPlaylist[0]);
 					FlxG.sound.music.stop();
 
@@ -4112,7 +4200,7 @@ class PlayState extends MusicBeatState
 		rating.acceleration.y = 550 * playbackRate * playbackRate;
 		rating.velocity.y -= FlxG.random.int(140, 175) * playbackRate;
 		rating.velocity.x -= FlxG.random.int(0, 10) * playbackRate;
-		rating.visible = (!ClientPrefs.hideHud && showRating);
+		rating.visible = (!ClientPrefs.hideHud && showRating) && !cpuControlled; //XT: Botplay
 		rating.x += ClientPrefs.comboOffset[0];
 		rating.y -= ClientPrefs.comboOffset[1];
 
@@ -4122,7 +4210,7 @@ class PlayState extends MusicBeatState
 		comboSpr.x = coolText.x;
 		comboSpr.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
 		comboSpr.velocity.y -= FlxG.random.int(140, 160) * playbackRate;
-		comboSpr.visible = (!ClientPrefs.hideHud && showCombo);
+		comboSpr.visible = (!ClientPrefs.hideHud && showCombo) && !cpuControlled; //XT: Botplay
 		comboSpr.x += ClientPrefs.comboOffset[0];
 		comboSpr.y -= ClientPrefs.comboOffset[1];
 		comboSpr.y += 60;
@@ -4208,7 +4296,7 @@ class PlayState extends MusicBeatState
 			numScore.acceleration.y = FlxG.random.int(200, 300) * playbackRate * playbackRate;
 			numScore.velocity.y -= FlxG.random.int(140, 160) * playbackRate;
 			numScore.velocity.x = FlxG.random.float(-5, 5) * playbackRate;
-			numScore.visible = !ClientPrefs.hideHud;
+			numScore.visible = !ClientPrefs.hideHud && !cpuControlled; //XT: Botplay
 
 			//if (combo >= 10 || combo == 0)
 			if(showComboNum)

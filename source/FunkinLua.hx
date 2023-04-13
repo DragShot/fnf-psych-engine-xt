@@ -67,6 +67,85 @@ class FunkinLua {
 	//public var errorHandler:String->Void;
 	#if LUA_ALLOWED
 	public var lua:State = null;
+	static inline var setupScript:String = "
+do
+	local path_bin, path_script, path_mod, path_relative, root;
+	local source = ${scriptPath};
+	
+	--limit=2 -> Seach inside 'mods/modpack' folder
+	--limit=1 -> Seach inside 'mods' folder
+	function _pathSplice(limit)
+		--Fetch the location of this script
+		local path = string.sub(source, 2);
+		local idx = 0;
+		for i = 1, limit do
+			idx, _ = string.find(path, '/', idx + 1, true);
+		end
+		path = string.sub(path, 1, idx);
+		return path;
+	end
+	
+	root = string.sub(source, 2):match('@?(.*/)');
+	path_relative = root..'?.lua;'..root..'?/init.lua;';
+	root = _pathSplice(2);
+	path_mod = root..'libs/?.lua;'..root..'libs/?/init.lua;';
+	root = _pathSplice(1);
+	path_script = root..'libs/?.lua;'..root..'libs/?/init.lua;';
+	path_bin = 'lua/?.lua;lua/?/init.lua;?.lua;?/init.lua;';
+	
+	package.path = path_relative .. path_mod .. path_script .. path_bin; --package.path .. 
+end
+
+local function _requireSetup()
+	local luaRequire = _G.require; --OG require function
+	local function _psychrequire(str) --A safer replacement
+		local blacklist = {
+			['ffi'] = true,
+			--['bit'] = true,
+			['jit'] = true,
+			['io'] = true,
+			['debug'] = true
+		}
+		if not blacklist[str] then
+			return luaRequire(str);
+		end
+	end
+
+	return _psychrequire; --Return the replacement function
+end
+
+_G.require = _requireSetup(); --_psychrequire
+_requireSetup = nil;
+
+--debug = nil
+--io = nil
+--dofile = nil
+--load = nil
+--loadfile = nil
+os.execute = nil
+os.rename = nil
+os.remove = nil
+os.tmpname = nil
+os.setlocale = nil
+os.getenv = nil
+package.loadlib = nil
+package.seeall = nil
+package.preload.ffi = nil
+package.preload['jit.profile'] = nil
+package.preload['jit.util'] = nil
+--package.loaded.debug = nil
+--package.loaded.io = nil
+package.loaded.jit = nil
+package.loaded['jit.opt'] = nil
+package.loaded.os.execute = nil
+package.loaded.os.rename = nil
+package.loaded.os.remove = nil
+package.loaded.os.tmpname = nil
+package.loaded.os.setlocale = nil
+package.loaded.os.getenv = nil
+package.loaded.process = nil
+process = nil
+	"; //XT: Lua
 	#end
 	public var camTarget:FlxCamera;
 	public var scriptName:String = '';
@@ -87,14 +166,19 @@ class FunkinLua {
 
 		//LuaL.dostring(lua, CLENSE);
 		try{
+			//XT: Lua
+			var initLua = StringTools.replace(setupScript, "${scriptPath}", "'@" + script + "'");
+			//trace('Script to load: ' + initLua);
+			LuaL.dostring(lua, initLua);
+			//
 			var result:Dynamic = LuaL.dofile(lua, script);
 			var resultStr:String = Lua.tostring(lua, result);
 			if(resultStr != null && result != 0) {
-				trace('Error on lua script! ' + resultStr);
+				trace('Error on Lua script! ' + resultStr);
 				#if windows
-				lime.app.Application.current.window.alert(resultStr, 'Error on lua script!');
+				lime.app.Application.current.window.alert(resultStr, 'Error on Lua script!');
 				#else
-				luaTrace('Error loading lua script: "$script"\n' + resultStr, true, false, FlxColor.RED);
+				luaTrace('Error loading Lua script: "$script"\n' + resultStr, true, false, FlxColor.RED);
 				#end
 				lua = null;
 				return;
@@ -127,6 +211,7 @@ class FunkinLua {
 		set('songPath', Paths.formatToSongPath(PlayState.SONG.song));
 		set('startedCountdown', false);
 		set('curStage', PlayState.SONG.stage);
+		set('curFolder', PlayState.curFolder); //XT: Data folder
 
 		set('isStoryMode', PlayState.isStoryMode);
 		set('difficulty', PlayState.storyDifficulty);
@@ -945,6 +1030,16 @@ class FunkinLua {
 				loadFrames(spr, image, spriteType);
 			}
 		});
+		
+		//XT: Localization support
+		Lua_helper.add_callback(lua, "getLangCode", function() {
+			return LanguageSupport.currentLangCode();
+		});
+		
+		Lua_helper.add_callback(lua, "getLangName", function() {
+			return LanguageSupport.currentLangName();
+		});
+		//
 
 		Lua_helper.add_callback(lua, "getProperty", function(variable:String) {
 			var result:Dynamic = null;
@@ -2130,8 +2225,24 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "getRandomBool", function(chance:Float = 50) {
 			return FlxG.random.bool(chance);
 		});
+		//XT: Lua - File reading
+		Lua_helper.add_callback(lua, "readFile", function(targetFile:String = null) {
+			if (targetFile == null) return null;
+			try {
+				return Paths.getTextFromFile(targetFile);
+			} catch (ex:Dynamic) {}
+			return null;
+		});
+		/*Lua_helper.add_callback(lua, "readLines", function(targetFile:String = null) {
+			if (targetFile == null) return "";
+			var text = Paths.getTextFromFile(targetFile);
+			return CoolUtil.listFromString(text); //Doesn't work
+		});*/
+		//
 		Lua_helper.add_callback(lua, "startDialogue", function(dialogueFile:String, music:String = null) {
 			var path:String;
+			//XT: Language support
+			/*
 			#if MODS_ALLOWED
 			path = Paths.modsJson(Paths.formatToSongPath(PlayState.SONG.song) + '/' + dialogueFile);
 			if(!FileSystem.exists(path))
@@ -2141,11 +2252,15 @@ class FunkinLua {
 			luaTrace('startDialogue: Trying to load dialogue: ' + path);
 
 			#if MODS_ALLOWED
-			if(FileSystem.exists(path))
+			if(FileSystem.exists(path)) {
 			#else
-			if(Assets.exists(path))
+			if(Assets.exists(path)) {
 			#end
-			{
+			*/
+			var path:String = PlayState.instance.searchPsychDialogue(PlayState.curFolder, dialogueFile);
+			if (path != null) {
+				luaTrace('Trying to load dialogue: ' + path);
+			//
 				var shit:DialogueFile = DialogueBoxPsych.parseDialogue(path);
 				if(shit.dialogue.length > 0) {
 					PlayState.instance.startDialogue(shit, music);

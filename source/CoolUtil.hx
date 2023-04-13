@@ -145,9 +145,9 @@ class CoolUtil
 		so Base Psych saves won't conflict with yours
 		@BeastlyGabi
 	**/
-	public static function getSavePath(folder:String = 'ShadowMario'):String {
+	public static function getSavePath(folder:String = 'DragShot Software'):String {
 		@:privateAccess
-		return #if (flixel < "5.0.0") folder #else FlxG.stage.application.meta.get('company')
+		return #if (flixel < "5.0.0") folder #else FlxSave.validate(FlxG.stage.application.meta.get('company'))
 			+ '/'
 			+ FlxSave.validate(FlxG.stage.application.meta.get('file')) #end;
 	}

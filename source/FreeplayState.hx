@@ -368,6 +368,7 @@ class FreeplayState extends MusicBeatState
 			}*/
 			trace(poop);
 
+			PlayState.curFolder = songLowercase; //XT: Data folder
 			PlayState.SONG = Song.loadFromJson(poop, songLowercase);
 			PlayState.isStoryMode = false;
 			PlayState.storyDifficulty = curDifficulty;
@@ -384,7 +385,7 @@ class FreeplayState extends MusicBeatState
 			}
 
 			FlxG.sound.music.volume = 0;
-					
+			FlxG.sound.play(Paths.sound('confirmMenu')); //
 			destroyFreeplayVocals();
 		}
 		else if(controls.RESET)

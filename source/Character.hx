@@ -1,6 +1,7 @@
 package;
 
 import animateatlas.AtlasFrameMaker;
+import flixel.animation.FlxAnimation;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.addons.effects.FlxTrail;
@@ -77,6 +78,8 @@ class Character extends FlxSprite
 	public var noAntialiasing:Bool = false;
 	public var originalFlipX:Bool = false;
 	public var healthColorArray:Array<Int> = [255, 0, 0];
+
+	public var animations:Array<FlxAnimation> = []; //
 
 	public static var DEFAULT_CHARACTER:String = 'bf'; //In case a character is missing, it will use BF on its place
 	public function new(x:Float, y:Float, ?character:String = 'bf', ?isPlayer:Bool = false)
@@ -208,6 +211,7 @@ class Character extends FlxSprite
 						if(anim.offsets != null && anim.offsets.length > 1) {
 							addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
 						}
+						animations.push(animation.getByName(animAnim)); //
 					}
 				} else {
 					quickAnimAdd('idle', 'BF idle dance');

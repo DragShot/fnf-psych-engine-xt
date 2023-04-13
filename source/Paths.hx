@@ -46,6 +46,8 @@ class Paths
 		'weeks',
 		'fonts',
 		'scripts',
+		'libs', //
+		'states', //
 		'achievements'
 	];
 	#end

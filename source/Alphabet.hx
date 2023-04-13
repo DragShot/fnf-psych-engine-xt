@@ -262,9 +262,9 @@ typedef Letter = {
 
 class AlphaCharacter extends FlxSprite
 {
-	//public static var alphabet:String = "abcdefghijklmnopqrstuvwxyz";
+	public static var alphabet:String = "abcdefghijklmnopqrstuvwxyzñáéíóúü"; //XT
 	//public static var numbers:String = "1234567890";
-	//public static var symbols:String = "|~#$%()*+-:;<=>@[]^_.,'!?";
+	//public static var symbols:String = "|~#$%()*+-:;<=>@[]^_.,'!?¡¿"; //XT
 
 	public var image(default, set):String;
 
@@ -275,6 +275,8 @@ class AlphaCharacter extends FlxSprite
 		'm'  => null, 'n'  => null, 'o'  => null, 'p'  => null, 'q'  => null, 'r'  => null,
 		's'  => null, 't'  => null, 'u'  => null, 'v'  => null, 'w'  => null, 'x'  => null,
 		'y'  => null, 'z'  => null,
+		'á'  => null, 'é'  => null, 'í'  => null, 'ó'  => null, 'ú'  => null, 'ü'  => null, //XT
+		'ñ'  => null, //XT
 		
 		//numbers
 		'0'  => null, '1'  => null, '2'  => null, '3'  => null, '4'  => null,
@@ -311,6 +313,8 @@ class AlphaCharacter extends FlxSprite
 		','  => {anim: 'comma', offsets: [0, -6]},
 		'\\' => {anim: 'back slash', offsets: [0, 0]},
 		'/'  => {anim: 'forward slash', offsets: [0, 0]},
+		'¡'  => {anim: 'opening exclamation'}, //XT
+		'¿'  => {anim: 'opening question'}, //XT
 		'|'  => null,
 		'~'  => {offsets: [0, 16]}
 	];
@@ -332,7 +336,7 @@ class AlphaCharacter extends FlxSprite
 
 		var curLetter:Letter = allLetters.get('?');
 		var lowercase = character.toLowerCase();
-		if(allLetters.exists(lowercase)) curLetter = allLetters.get(lowercase);
+		if (allLetters.exists(lowercase)) curLetter = allLetters.get(lowercase);
 
 		var suffix:String = '';
 		if(!bold)
@@ -383,8 +387,9 @@ class AlphaCharacter extends FlxSprite
 
 	public static function isTypeAlphabet(c:String) // thanks kade
 	{
-		var ascii = StringTools.fastCodeAt(c, 0);
-		return (ascii >= 65 && ascii <= 90) || (ascii >= 97 && ascii <= 122);
+		/*var ascii = StringTools.fastCodeAt(c, 0);
+		return (ascii >= 65 && ascii <= 90) || (ascii >= 97 && ascii <= 122);*/
+		return alphabet.contains(c); //ASCII ain't enough on this day and age
 	}
 
 	private function set_image(name:String)
