@@ -518,5 +518,52 @@ class Paths
 		}
 		return list;
 	}
+
+	//XT: Lua - File access
+	public static function xtFindFile(target:String = null, modOnly:Bool = false):String {
+		if (target == null || target.contains("../")) return null;
+		var path = Paths.mods(target);
+		if (Paths.currentModDirectory != '') {
+			path = Paths.mods(Paths.currentModDirectory + '/' + target);
+		} if (!modOnly && (!FileSystem.exists(path) || FileSystem.isDirectory(path))) {
+			path = Paths.mods(target);
+		} if (FileSystem.exists(path) && !FileSystem.isDirectory(path)) {
+			return path;
+		}
+		return null;
+	}
+
+	public static function xtFindFolder(target:String = null, modOnly:Bool = false):String {
+		if (target == null || target.contains("../")) return null;
+		var path = Paths.mods(target);
+		if (Paths.currentModDirectory != '') {
+			path = Paths.mods(Paths.currentModDirectory + '/' + target);
+		} if (!modOnly && (!FileSystem.exists(path) || !FileSystem.isDirectory(path))) {
+			path = Paths.mods(target);
+		} if (FileSystem.exists(path) && FileSystem.isDirectory(path)) {
+			return path;
+		}
+		return null;
+	}
+
+	public static function xtFileWritePath(target:String = null):String {
+		if (target == null || target.contains("../") || Paths.currentModDirectory == '') return null;
+		var path = Paths.mods(Paths.currentModDirectory + '/' + target);
+		if (!FileSystem.exists(path) || (FileSystem.exists(path) && !FileSystem.isDirectory(path))) {
+			return path;
+		} else {
+			return null;
+		}
+	}
+
+	public static function xtFolderCreatePath(target:String = null):String {
+		if (target == null || target.contains("../") || Paths.currentModDirectory == '') return null;
+		var path = Paths.mods(Paths.currentModDirectory + '/' + target);
+		if (!FileSystem.exists(path) || (FileSystem.exists(path) && FileSystem.isDirectory(path))) {
+			return path;
+		} else {
+			return null;
+		}
+	}
 	#end
 }

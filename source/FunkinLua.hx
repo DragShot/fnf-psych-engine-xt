@@ -41,6 +41,7 @@ import flixel.addons.display.FlxRuntimeShader;
 #if sys
 import sys.FileSystem;
 import sys.io.File;
+import sys.io.FileOutput;
 #end
 
 import Type.ValueType;
@@ -123,8 +124,8 @@ _requireSetup = nil;
 --load = nil
 --loadfile = nil
 os.execute = nil
-os.rename = nil
-os.remove = nil
+--os.rename = nil
+--os.remove = nil
 os.tmpname = nil
 os.setlocale = nil
 os.getenv = nil
@@ -138,8 +139,8 @@ package.preload['jit.util'] = nil
 package.loaded.jit = nil
 package.loaded['jit.opt'] = nil
 package.loaded.os.execute = nil
-package.loaded.os.rename = nil
-package.loaded.os.remove = nil
+--package.loaded.os.rename = nil
+--package.loaded.os.remove = nil
 package.loaded.os.tmpname = nil
 package.loaded.os.setlocale = nil
 package.loaded.os.getenv = nil
@@ -2225,20 +2226,6 @@ process = nil
 		Lua_helper.add_callback(lua, "getRandomBool", function(chance:Float = 50) {
 			return FlxG.random.bool(chance);
 		});
-		//XT: Lua - File reading
-		Lua_helper.add_callback(lua, "readFile", function(targetFile:String = null) {
-			if (targetFile == null) return null;
-			try {
-				return Paths.getTextFromFile(targetFile);
-			} catch (ex:Dynamic) {}
-			return null;
-		});
-		/*Lua_helper.add_callback(lua, "readLines", function(targetFile:String = null) {
-			if (targetFile == null) return "";
-			var text = Paths.getTextFromFile(targetFile);
-			return CoolUtil.listFromString(text); //Doesn't work
-		});*/
-		//
 		Lua_helper.add_callback(lua, "startDialogue", function(dialogueFile:String, music:String = null) {
 			var path:String;
 			//XT: Language support
@@ -2857,6 +2844,89 @@ process = nil
 			#end
 			return list;
 		});
+		//XT: Lua - File access
+		Lua_helper.add_callback(lua, "folderExists", function(targetFolder:String = null, modOnly:Bool = false) {
+			#if (MODS_ALLOWED && sys)
+			return Paths.xtFindFolder(targetFolder, modOnly) != null;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "fileExists", function(targetFile:String = null, modOnly:Bool = false) {
+			#if (MODS_ALLOWED && sys)
+			return Paths.xtFindFile(targetFile, modOnly) != null;
+			#else
+			return false;
+			#end
+		});
+		Lua_helper.add_callback(lua, "readFile", function(targetFile:String = null, modOnly:Bool = false) {
+			#if (MODS_ALLOWED && sys)
+			var path = Paths.xtFindFile(targetFile, modOnly);
+			if (path != null) try {
+				return File.getContent(path);
+			} catch (ex:Dynamic) {
+				trace('Error while reading from "$path": $ex');
+			}
+			#end
+			return null;
+		});
+		Lua_helper.add_callback(lua, "readLines", function(targetFile:String = null, modOnly:Bool = false) {
+			var text = Paths.getTextFromFile(targetFile, modOnly);
+			return text == null ? null : CoolUtil.listFromString(text, false);
+		});
+		Lua_helper.add_callback(lua, "writeFile", function(targetFile:String = null, data:String = "", append:Bool = false) {
+			#if (MODS_ALLOWED && sys)
+			var path = Paths.xtFileWritePath(targetFile);
+			if (path != null) try {
+				var out:FileOutput = append ? File.append(path) : File.write(path);
+				out.writeString(data, haxe.io.Encoding.UTF8);
+				out.close();
+				return true;
+			} catch (ex:Dynamic) {
+				trace('Error while writing into "$path": $ex');
+			}
+			#end
+			return false;
+		});
+		Lua_helper.add_callback(lua, "makeFolder", function(targetFolder:String = null) {
+			#if (MODS_ALLOWED && sys)
+			var path = Paths.xtFolderCreatePath(targetFolder);
+			if (path != null) try {
+				FileSystem.createDirectory(path);
+				return true;
+			} catch (ex:Dynamic) {
+				trace('Unable to create folder "$path": $ex');
+			}
+			#end
+			return false;
+		});
+		Lua_helper.add_callback(lua, "removeFile", function(targetFile:String = null) {
+			#if (MODS_ALLOWED && sys)
+			if (Paths.currentModDirectory == '') return false;
+			var path = Paths.xtFindFile(targetFile, true);
+			if (path != null) try {
+				FileSystem.deleteFile(path);
+				return true;
+			} catch (ex:Dynamic) {
+				trace('Unable to delete file "$path": $ex');
+			}
+			#end
+			return false;
+		});
+		Lua_helper.add_callback(lua, "removeFolder", function(targetFolder:String = null) {
+			#if (MODS_ALLOWED && sys)
+			if (Paths.currentModDirectory == '') return false;
+			var path = Paths.xtFindFolder(targetFolder, true);
+			if (path != null) try {
+				FileSystem.deleteDirectory(path);
+				return true;
+			} catch (ex:Dynamic) {
+				trace('Unable to delete folder "$path": $ex');
+			}
+			#end
+			return false;
+		});
+		//
 
 		call('onCreate', []);
 		#end

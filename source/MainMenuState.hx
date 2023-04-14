@@ -73,14 +73,14 @@ class MainMenuState extends MusicBeatState
 
 		persistentUpdate = persistentDraw = true;
 
-		//Random chance to show a different background
+		//XT: Random chance to show a different background
 		var altsuf = FlxG.random.bool(10) ? "Alt" : "";
-
 		var yScroll:Float = Math.max(0.25 - (0.05 * (optionShit.length - 4)), 0.1);
 		var bg:FlxSprite = new FlxSprite(-80).loadGraphic(Paths.image('menuBG$altsuf'));
 		if (bg.width <= 1) { //Fall back if unavailable
 			bg = new FlxSprite(-80).loadGraphic(Paths.image('menuBG'));
 		}
+		//
 		bg.scrollFactor.set(0, yScroll);
 		bg.setGraphicSize(Std.int(bg.width * 1.175));
 		bg.updateHitbox();
@@ -92,11 +92,12 @@ class MainMenuState extends MusicBeatState
 		camFollowPos = new FlxObject(0, 0, 1, 1);
 		add(camFollow);
 		add(camFollowPos);
-
-		magenta = new FlxSprite(-80).loadGraphic(Paths.image('menuDesat$altsuf')); //
-		if (magenta.width <= 1) { //
+		//XT: Alt background
+		magenta = new FlxSprite(-80).loadGraphic(Paths.image('menuDesat$altsuf'));
+		if (magenta.width <= 1) {
 			magenta = new FlxSprite(-80).loadGraphic(Paths.image('menuDesat'));
 		}
+		//
 		magenta.scrollFactor.set(0, yScroll);
 		magenta.setGraphicSize(Std.int(magenta.width * 1.175));
 		magenta.updateHitbox();

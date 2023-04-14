@@ -75,16 +75,12 @@ class CoolUtil
 
 		return daList;
 	}
-	public static function listFromString(string:String):Array<String>
+	public static function listFromString(string:String, trimLines:Bool = true):Array<String> //XT
 	{
-		var daList:Array<String> = [];
-		daList = string.trim().split('\n');
-
-		for (i in 0...daList.length)
-		{
+		var daList:Array<String> = string.trim().replace('\r\n', '\n').split('\n');
+		if (trimLines) for (i in 0...daList.length) {
 			daList[i] = daList[i].trim();
 		}
-
 		return daList;
 	}
 	public static function dominantColor(sprite:flixel.FlxSprite):Int{
