@@ -2,21 +2,56 @@ package;
 
 import Conductor.BPMChangeEvent;
 import flixel.FlxG;
+import flixel.FlxBasic;
+import flixel.FlxCamera;
+import flixel.FlxSprite;
+import flixel.FlxState;
 import flixel.addons.ui.FlxUIState;
-import flixel.math.FlxRect;
-import flixel.util.FlxTimer;
 import flixel.addons.transition.FlxTransitionableState;
+import flixel.math.FlxRect;
+import flixel.system.FlxSound;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
-import flixel.FlxSprite;
 import flixel.util.FlxColor;
 import flixel.util.FlxGradient;
-import flixel.FlxState;
-import flixel.FlxCamera;
-import flixel.FlxBasic;
+import flixel.util.FlxSave;
+import flixel.util.FlxTimer;
+//XT: Scripted states
+import scripting.DebugLuaText;
+import scripting.ModchartSprite;
+import scripting.ModchartText;
+//
+
+using StringTools;
 
 class MusicBeatState extends FlxUIState
 {
+	//XT: Scripted states
+	public static inline var TITLE_STATE:String = 'title';
+	public static inline var MAINMENU_STATE:String = 'main_menu';
+	public static inline var STORYMODE_STATE:String = 'story_mode';
+	public static inline var FREEPLAY_STATE:String = 'freeplay';
+	public static inline var AWARDS_STATE:String = 'awards';
+	public static inline var CREDITS_STATE:String = 'credits';
+	public static inline var OPTIONS_STATE:String = 'options';
+	//
+
+	#if (haxe >= "4.0.0")
+	public var modchartTweens:Map<String, FlxTween> = new Map<String, FlxTween>();
+	public var modchartSprites:Map<String, ModchartSprite> = new Map<String, ModchartSprite>();
+	public var modchartTimers:Map<String, FlxTimer> = new Map<String, FlxTimer>();
+	public var modchartSounds:Map<String, FlxSound> = new Map<String, FlxSound>();
+	public var modchartTexts:Map<String, ModchartText> = new Map<String, ModchartText>();
+	public var modchartSaves:Map<String, FlxSave> = new Map<String, FlxSave>();
+	#else
+	public var modchartTweens:Map<String, FlxTween> = new Map();
+	public var modchartSprites:Map<String, ModchartSprite> = new Map();
+	public var modchartTimers:Map<String, FlxTimer> = new Map();
+	public var modchartSounds:Map<String, FlxSound> = new Map();
+	public var modchartTexts:Map<String, ModchartText> = new Map();
+	public var modchartSaves:Map<String, FlxSave> = new Map();
+	#end
+
 	private var curSection:Int = 0;
 	private var stepsToDo:Int = 0;
 
@@ -116,9 +151,70 @@ class MusicBeatState extends FlxUIState
 		var shit = ((Conductor.songPosition - ClientPrefs.noteOffset) - lastChange.songTime) / lastChange.stepCrochet;
 		curDecStep = lastChange.stepTime + shit;
 		curStep = lastChange.stepTime + Math.floor(shit);
+		//trace('step = $curStep');
 	}
 
-	public static function switchState(nextState:FlxState) {
+	//XT: Scripted states
+	public static function switchState(nextState:Dynamic) { //FlxState|String
+		if (nextState == null) {
+			MusicBeatState._switchState(FlxG.state);
+		} else if (nextState is FlxState) {
+			MusicBeatState._switchState(nextState);
+		} else if (nextState is String) {
+			switch (nextState) {
+				case TITLE_STATE:
+					if (!loadCustomState(TITLE_STATE))
+						MusicBeatState.switchState(new TitleState());
+				case MAINMENU_STATE:
+					if (!loadCustomState(MAINMENU_STATE))
+						MusicBeatState.switchState(new MainMenuState());
+				case STORYMODE_STATE:
+					if (!loadCustomState(STORYMODE_STATE))
+						MusicBeatState.switchState(new StoryMenuState());
+				case FREEPLAY_STATE:
+					if (!loadCustomState(FREEPLAY_STATE))
+						MusicBeatState.switchState(new FreeplayState());
+				case AWARDS_STATE:
+					if (!loadCustomState(AWARDS_STATE))
+						MusicBeatState.switchState(new AchievementsMenuState());
+				case CREDITS_STATE:
+					if (!loadCustomState(CREDITS_STATE))
+						MusicBeatState.switchState(new CreditsState());
+				case OPTIONS_STATE:
+					if (!loadCustomState(OPTIONS_STATE))
+						MusicBeatState.switchState(new options.OptionsState());
+				default:
+					#if MODS_ALLOWED
+					try {
+						MusicBeatState.switchState(new scripting.ScriptedState(nextState));
+					} catch (ex:Dynamic) {
+						trace('Could not load custom state "$nextState". Reason: $ex');
+					}
+					#else
+						trace('Custom states are not supported with mods disabled!');
+					#end
+			}
+		} else {
+			trace('Unsupported call to switchState("$nextState")');
+		}
+	}
+
+	private static function loadCustomState(name:String):Bool {
+		#if MODS_ALLOWED
+		try {
+			MusicBeatState.switchState(new scripting.ScriptedState(name));
+			return true;
+		} catch (ex:Dynamic) {
+			var msg = '$ex';
+			if (!(ex is haxe.Exception && msg.startsWith("Could not find any script")))
+				trace('Could not load state "$name". Reason: $ex');
+		}
+		#end
+		return false;
+	}
+	//
+
+	private static function _switchState(nextState:FlxState) { //XT
 		// Custom made Trans in
 		var curState:Dynamic = FlxG.state;
 		var leState:MusicBeatState = curState;
@@ -142,7 +238,7 @@ class MusicBeatState extends FlxUIState
 	}
 
 	public static function resetState() {
-		MusicBeatState.switchState(FlxG.state);
+		MusicBeatState._switchState(FlxG.state); //XT
 	}
 
 	public static function getState():MusicBeatState {
@@ -172,5 +268,11 @@ class MusicBeatState extends FlxUIState
 		var val:Null<Float> = 4;
 		if(PlayState.SONG != null && PlayState.SONG.notes[curSection] != null) val = PlayState.SONG.notes[curSection].sectionBeats;
 		return val == null ? 4 : val;
+	}
+
+	public function getControl(key:String) {
+		var pressed:Bool = Reflect.getProperty(controls, key);
+		//trace('Control result: ' + pressed);
+		return pressed;
 	}
 }

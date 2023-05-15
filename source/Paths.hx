@@ -437,6 +437,19 @@ class Paths
 		return modFolders('images/' + key + '.txt');
 	}
 
+	//XT: Scripted states
+	static public function modsStates(key:String) {
+		key = 'states/' + key + '.lua';
+		if (currentModDirectory != null && currentModDirectory.length > 0) {
+			var fileToCheck:String = mods(currentModDirectory + '/' + key);
+			if (FileSystem.exists(fileToCheck)) {
+				return fileToCheck;
+			}
+		}
+		return mods(key);
+	}
+	//
+
 	/* Goes unused for now
 
 	inline static public function modsShaderFragment(key:String, ?library:String)
