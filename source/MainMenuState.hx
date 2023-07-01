@@ -247,18 +247,18 @@ class MainMenuState extends MusicBeatState
 								{
 									case 'story_mode':
 										LanguageSupport.refreshLangs(); //XT: Language support
-										MusicBeatState.switchState(new StoryMenuState());
+										MusicBeatState.switchState(MusicBeatState.STORYMODE_STATE); //XT: Scripted states
 									case 'freeplay':
 										LanguageSupport.refreshLangs(); //XT: Language support
-										MusicBeatState.switchState(new FreeplayState());
+										MusicBeatState.switchState(MusicBeatState.FREEPLAY_STATE); //XT: Scripted states
 									#if MODS_ALLOWED
 									case 'mods':
 										MusicBeatState.switchState(new ModsMenuState());
 									#end
 									case 'awards':
-										MusicBeatState.switchState(new AchievementsMenuState());
+										MusicBeatState.switchState(MusicBeatState.AWARDS_STATE); //XT: Scripted states
 									case 'credits':
-										MusicBeatState.switchState(new CreditsState());
+										MusicBeatState.switchState(MusicBeatState.CREDITS_STATE); //XT: Scripted states
 									case 'options':
 										LanguageSupport.refreshLangs(); //XT: Language support
 										LoadingState.loadAndSwitchState(new options.OptionsState());

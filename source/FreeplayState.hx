@@ -54,6 +54,7 @@ class FreeplayState extends MusicBeatState
 	{
 		//Paths.clearStoredMemory();
 		//Paths.clearUnusedMemory();
+		this.prevModDir = Paths.currentModDirectory; //XT: Scripted states
 		
 		persistentUpdate = true;
 		PlayState.isStoryMode = false;
@@ -318,7 +319,8 @@ class FreeplayState extends MusicBeatState
 				colorTween.cancel();
 			}
 			FlxG.sound.play(Paths.sound('cancelMenu'));
-			MusicBeatState.switchState(new MainMenuState());
+			Paths.currentModDirectory = this.prevModDir; //XT: Scripted states
+			MusicBeatState.switchState(MusicBeatState.MAINMENU_STATE); //XT: Scripted states
 		}
 
 		if(ctrl)

@@ -44,6 +44,7 @@ class CreditsState extends MusicBeatState
 		DiscordClient.changePresence("In the Menus", null);
 		#end
 
+		this.prevModDir = Paths.currentModDirectory; //XT: Scripted states
 		persistentUpdate = true;
 		bg = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		add(bg);
@@ -213,7 +214,8 @@ class CreditsState extends MusicBeatState
 					colorTween.cancel();
 				}
 				FlxG.sound.play(Paths.sound('cancelMenu'));
-				MusicBeatState.switchState(new MainMenuState());
+				Paths.currentModDirectory = this.prevModDir; //XT: Scripted states
+				MusicBeatState.switchState(MusicBeatState.MAINMENU_STATE); //XT: Scripted states
 				quitting = true;
 			}
 		}

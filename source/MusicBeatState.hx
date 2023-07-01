@@ -1,5 +1,7 @@
 package;
 
+import editors.MasterEditorMenu;
+import scripting.ModchartTween;
 import Conductor.BPMChangeEvent;
 import flixel.FlxG;
 import flixel.FlxBasic;
@@ -34,17 +36,18 @@ class MusicBeatState extends FlxUIState
 	public static inline var AWARDS_STATE:String = 'awards';
 	public static inline var CREDITS_STATE:String = 'credits';
 	public static inline var OPTIONS_STATE:String = 'options';
+	public static inline var MODEDITOR_STATE:String = 'mod_editor';
 	//
 
 	#if (haxe >= "4.0.0")
-	public var modchartTweens:Map<String, FlxTween> = new Map<String, FlxTween>();
+	public var modchartTweens:Map<String, ModchartTween> = new Map<String, ModchartTween>();
 	public var modchartSprites:Map<String, ModchartSprite> = new Map<String, ModchartSprite>();
 	public var modchartTimers:Map<String, FlxTimer> = new Map<String, FlxTimer>();
 	public var modchartSounds:Map<String, FlxSound> = new Map<String, FlxSound>();
 	public var modchartTexts:Map<String, ModchartText> = new Map<String, ModchartText>();
 	public var modchartSaves:Map<String, FlxSave> = new Map<String, FlxSave>();
 	#else
-	public var modchartTweens:Map<String, FlxTween> = new Map();
+	public var modchartTweens:Map<String, ModchartTween> = new Map();
 	public var modchartSprites:Map<String, ModchartSprite> = new Map();
 	public var modchartTimers:Map<String, FlxTimer> = new Map();
 	public var modchartSounds:Map<String, FlxSound> = new Map();
@@ -61,6 +64,8 @@ class MusicBeatState extends FlxUIState
 	private var curDecStep:Float = 0;
 	private var curDecBeat:Float = 0;
 	private var controls(get, never):Controls;
+
+	private var prevModDir:String; //XT: Scripted states
 
 	public static var camBeat:FlxCamera;
 
@@ -161,32 +166,42 @@ class MusicBeatState extends FlxUIState
 		} else if (nextState is FlxState) {
 			MusicBeatState._switchState(nextState);
 		} else if (nextState is String) {
+			var state: String = nextState;
+			if (state.startsWith('#')) { //Custom state class, because the game has many and mods would rarely ever use them
+				state = state.substring(1);
+				var clazz = Type.resolveClass(state);
+				if (clazz != null && Type.createEmptyInstance(clazz) is FlxState)
+					MusicBeatState._switchState(Type.createInstance(clazz, []));
+				return;
+			}
 			switch (nextState) {
 				case TITLE_STATE:
 					if (!loadCustomState(TITLE_STATE))
-						MusicBeatState.switchState(new TitleState());
+						MusicBeatState._switchState(new TitleState());
 				case MAINMENU_STATE:
 					if (!loadCustomState(MAINMENU_STATE))
-						MusicBeatState.switchState(new MainMenuState());
+						MusicBeatState._switchState(new MainMenuState());
 				case STORYMODE_STATE:
 					if (!loadCustomState(STORYMODE_STATE))
-						MusicBeatState.switchState(new StoryMenuState());
+						MusicBeatState._switchState(new StoryMenuState());
 				case FREEPLAY_STATE:
 					if (!loadCustomState(FREEPLAY_STATE))
-						MusicBeatState.switchState(new FreeplayState());
+						MusicBeatState._switchState(new FreeplayState());
 				case AWARDS_STATE:
 					if (!loadCustomState(AWARDS_STATE))
-						MusicBeatState.switchState(new AchievementsMenuState());
+						MusicBeatState._switchState(new AchievementsMenuState());
 				case CREDITS_STATE:
 					if (!loadCustomState(CREDITS_STATE))
-						MusicBeatState.switchState(new CreditsState());
+						MusicBeatState._switchState(new CreditsState());
 				case OPTIONS_STATE:
 					if (!loadCustomState(OPTIONS_STATE))
-						MusicBeatState.switchState(new options.OptionsState());
+						LoadingState.loadAndSwitchState(new options.OptionsState());
+				case MODEDITOR_STATE:
+					MusicBeatState._switchState(new editors.MasterEditorMenu());
 				default:
 					#if MODS_ALLOWED
 					try {
-						MusicBeatState.switchState(new scripting.ScriptedState(nextState));
+						MusicBeatState._switchState(new scripting.ScriptedState(nextState));
 					} catch (ex:Dynamic) {
 						trace('Could not load custom state "$nextState". Reason: $ex');
 					}
@@ -274,5 +289,17 @@ class MusicBeatState extends FlxUIState
 		var pressed:Bool = Reflect.getProperty(controls, key);
 		//trace('Control result: ' + pressed);
 		return pressed;
+	}
+
+	public function getLuaObject(tag:String, text:Bool = true):FlxSprite {
+		if (modchartSprites.exists(tag))
+			return modchartSprites.get(tag);
+		if (text && modchartTexts.exists(tag))
+			return modchartTexts.get(tag);
+		return null;
+	}
+
+	public function hasLuaObject(tag:String, text:Bool = true):Bool {
+		return modchartSprites.exists(tag) || (text && modchartTexts.exists(tag));
 	}
 }

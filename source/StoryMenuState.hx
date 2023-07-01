@@ -53,6 +53,7 @@ class StoryMenuState extends MusicBeatState
 	{
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
+		this.prevModDir = Paths.currentModDirectory; //XT: Scripted states
 
 		PlayState.isStoryMode = true;
 		WeekData.reloadWeekFiles(true);
@@ -265,7 +266,8 @@ class StoryMenuState extends MusicBeatState
 		{
 			FlxG.sound.play(Paths.sound('cancelMenu'));
 			movedBack = true;
-			MusicBeatState.switchState(new MainMenuState());
+			Paths.currentModDirectory = this.prevModDir; //XT: Scripted states
+			MusicBeatState.switchState(MusicBeatState.MAINMENU_STATE); //XT: Scripted states
 		}
 
 		super.update(elapsed);

@@ -68,6 +68,7 @@ class ModsMenuState extends MusicBeatState
 	{
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
+		this.prevModDir = Paths.currentModDirectory; //XT: Scripted states
 		WeekData.setDirectoryFromWeek();
 
 		#if desktop
@@ -495,7 +496,8 @@ class ModsMenuState extends MusicBeatState
 			}
 			else
 			{
-				MusicBeatState.switchState(new MainMenuState());
+				Paths.currentModDirectory = this.prevModDir; //XT: Scripted states
+				MusicBeatState.switchState(MusicBeatState.MAINMENU_STATE); //XT: Scripted states
 			}
 		}
 

@@ -1588,11 +1588,11 @@ class PlayState extends MusicBeatState
 		#end
 	}
 
-	public function getLuaObject(tag:String, text:Bool=true):FlxSprite {
-		if(modchartSprites.exists(tag)) return modchartSprites.get(tag);
-		if(text && modchartTexts.exists(tag)) return modchartTexts.get(tag);
-		if(variables.exists(tag)) return variables.get(tag);
-		return null;
+	public override function getLuaObject(tag:String, text:Bool=true):FlxSprite {
+		var obj:FlxSprite = super.getLuaObject(tag, text);
+		if (obj == null && variables.exists(tag))
+			obj = variables.get(tag);
+		return obj;
 	}
 
 	function startCharacterPos(char:Character, ?gfCheck:Bool = false) {
@@ -2765,7 +2765,7 @@ class PlayState extends MusicBeatState
 			}
 
 			for (tween in modchartTweens) {
-				tween.active = false;
+				tween.unwrap().active = false; //XT
 			}
 			for (timer in modchartTimers) {
 				timer.active = false;
@@ -2801,7 +2801,7 @@ class PlayState extends MusicBeatState
 			}
 
 			for (tween in modchartTweens) {
-				tween.active = true;
+				tween.unwrap().active = true; //XT
 			}
 			for (timer in modchartTimers) {
 				timer.active = true;
@@ -3395,7 +3395,7 @@ class PlayState extends MusicBeatState
 				persistentUpdate = false;
 				persistentDraw = false;
 				for (tween in modchartTweens) {
-					tween.active = true;
+					tween.unwrap().active = true; //XT
 				}
 				for (timer in modchartTimers) {
 					timer.active = true;
@@ -3997,7 +3997,7 @@ class PlayState extends MusicBeatState
 					if(FlxTransitionableState.skipNextTransIn) {
 						CustomFadeTransition.nextCamera = null;
 					}
-					MusicBeatState.switchState(new StoryMenuState());
+					MusicBeatState.switchState(MusicBeatState.STORYMODE_STATE); //XT: Scripted states
 
 					// if ()
 					if(!ClientPrefs.getGameplaySetting('practice', false) && !ClientPrefs.getGameplaySetting('botplay', false)) {
@@ -4061,7 +4061,7 @@ class PlayState extends MusicBeatState
 				if(FlxTransitionableState.skipNextTransIn) {
 					CustomFadeTransition.nextCamera = null;
 				}
-				MusicBeatState.switchState(new FreeplayState());
+				MusicBeatState.switchState(MusicBeatState.FREEPLAY_STATE); //XT: Scripted states
 				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 				changedDifficulty = false;
 			}

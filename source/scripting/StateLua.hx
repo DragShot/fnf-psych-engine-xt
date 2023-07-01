@@ -1,5 +1,6 @@
 package scripting;
 
+import flixel.FlxCamera;
 import FreeplayState.SongMetadata;
 import haxe.ds.StringMap;
 import flixel.addons.transition.FlxTransitionableState;
@@ -75,12 +76,20 @@ class StateLua {
 	private function deployFunctions() {
 		LuaUtils.bindSubstateFunctions(lua, state, state.callOnLuas);
 		LuaUtils.bindFileAccessFunctions(lua, luaTrace);
+		LuaUtils.bindDynamicAccessFunctions(lua, getInstance, luaTrace);
 		LuaUtils.bindSaveDataFunctions(lua, state, luaTrace);
 		LuaUtils.bindLocalizationFunctions(lua);
+		LuaUtils.bindInputFunctions(lua, state, luaTrace);
+		LuaUtils.bindSpriteFunctions(lua, getInstance, luaTrace);
+		LuaUtils.bindTextFunctions(lua, getInstance, cameraFromString, luaTrace);
+		LuaUtils.bindObjectFunctions(lua, getInstance, cameraFromString, luaTrace);
+		LuaUtils.bindCameraFunctions(lua, cameraFromString, luaTrace);
 		LuaUtils.bindAudioFunctions(lua, state, luaTrace);
 		LuaUtils.bindRandomizerFunctions(lua);
 		LuaUtils.bindStringFunctions(lua);
+		LuaUtils.bindTweenFunctions(lua, state, state.callOnLuas, luaTrace);
 		LuaUtils.bindTimerFunctions(lua, state, state.callOnLuas);
+		LuaUtils.bindPresenceFunctions(lua);
 
 		/*addCallback("debugPrint", function(...text:Dynamic) {
 			luaTrace(text.toArray().join(""), true, false);
@@ -89,6 +98,10 @@ class StateLua {
 			luaTrace(Std.string(nvl(text1, '')) + Std.string(nvl(text2, ''))
 				+ Std.string(nvl(text3, '')) + Std.string(nvl(text4, ''))
 				+ Std.string(nvl(text5, '')), true, false);
+		});
+		addCallback("triggerEvent", function(name:String, arg1:Dynamic = '', arg2:Dynamic = '') {
+			state.callOnLuas('onEvent', [name, '$arg1', '$arg2']);
+			return true;
 		});
 
 		//XT: Scripted states
@@ -120,6 +133,7 @@ class StateLua {
 			WeekData.setDirectoryFromWeek(chosenWeek);
 			CoolUtil.difficulties = this.weeksLua[PlayState.storyWeek].get('difficulties');
 			//Load song
+			difficulty--; //One to Zero-index
 			//state.persistentUpdate = false;
 			var songLowercase:String = Paths.formatToSongPath(songName);
 			var jsonPath:String = Highscore.formatSong(songLowercase, difficulty);
@@ -150,6 +164,7 @@ class StateLua {
 			PlayState.storyPlaylist = luaWeek.get('playlist');
 			CoolUtil.difficulties = luaWeek.get('difficulties');
 			//Load first song
+			difficulty--; //One to Zero-index
 			var suffix = nvl(CoolUtil.getDifficultyFilePath(difficulty), '');
 			PlayState.storyDifficulty = difficulty;
 			PlayState.curFolder = Paths.formatToSongPath(PlayState.storyPlaylist[0]); //XT: Data folder
@@ -168,6 +183,62 @@ class StateLua {
 		addCallback("getSongData", function(songName:String = null) {
 			return this.getLuaSongs(songName);
 		});
+
+		addCallback("getSongRating", function(songName:String = null, difficulty:Int): Float {
+			//Check availability
+			this.getLuaWeeks();
+			var storyWeek:Int = -1;
+			for (i in 0...this.weeks.length) {
+				for (songData in this.weeks[i].songs) {
+					if (songName == songData[0]) {
+						storyWeek = i;
+						break;
+					}
+				}
+			}
+			if (storyWeek == -1) return 0.0;
+			//Load difficulties and poll
+			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
+			return Highscore.getRating(songName, difficulty - 1);
+		});
+
+		addCallback("getSongScore", function(songName:String = null, difficulty:Int): Int {
+			//Check availability
+			this.getLuaWeeks();
+			var storyWeek:Int = -1;
+			for (i in 0...this.weeks.length) {
+				for (songData in this.weeks[i].songs) {
+					if (songName == songData[0]) {
+						storyWeek = i;
+						break;
+					}
+				}
+			}
+			if (storyWeek == -1) return 0;
+			//Load difficulties and poll
+			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
+			return Highscore.getScore(songName, difficulty - 1);
+		});
+
+		addCallback("getWeekScore", function(weekName:String = null, difficulty:Int): Int {
+			//Check availability
+			this.getLuaWeeks();
+			var storyWeek:Int = -1;
+			for (i in 0...this.weeks.length) {
+				if (weekName == this.weeks[i].weekName) {
+					storyWeek = i;
+					break;
+				}
+			}
+			if (storyWeek == -1) return 0;
+			//Load difficulties and poll
+			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
+			return Highscore.getWeekScore(this.weeks[storyWeek].fileName, difficulty - 1);
+		});
+	}
+
+	function getInstance(): MusicBeatState {
+		return this.state;
 	}
 
 	function getPlaylist(week:WeekData) {
@@ -227,10 +298,11 @@ class StateLua {
 				var songData:StringMap<Dynamic> = new StringMap<Dynamic>();
 				songData.set('name', song.songName);
 				songData.set('character', song.songCharacter);
+				songData.set('color', song.color);
 				songData.set('locked', this.isWeekLocked(week));
 				songData.set('difficulties', this.getDifficulties(week));
 				songData.set('hideFreeplay', week.hideFreeplay);
-				songData.set('week', song.week);
+				songData.set('week', song.week + 1);
 				songData.set('folder', song.folder);
 				this.songsLua.push(songData);
 			}
@@ -325,6 +397,13 @@ class StateLua {
 			lua = null;
 		}
 		#end
+	}
+
+	function cameraFromString(cam:String): FlxCamera {
+		switch (cam.toLowerCase()) {
+			case 'camother' | 'other': return state.camOther;
+		}
+		return state.camGame;
 	}
 
 	public function luaTrace(text:String, ignoreCheck:Bool = false, deprecated:Bool = false, color:FlxColor = FlxColor.WHITE) {
