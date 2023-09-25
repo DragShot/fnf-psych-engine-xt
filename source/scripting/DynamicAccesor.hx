@@ -46,7 +46,7 @@ class DynamicAccesor {
         } else if (field == null || field.length == 0) {
             return obj;
         }
-        var value = null;
+        var value:Dynamic = null;
         if (obj is MusicBeatState && obj.hasLuaObject(field)) {
             value = obj.getLuaObject(field);
         } else if (obj is PlayState && obj.variables.exists(field)) {
@@ -80,7 +80,7 @@ class DynamicAccesor {
         try {
             if (obj is PlayState && obj.variables.exists(field)) {
                 obj.variables.set(field, value);
-            } else if (value is StringMap || value is ObjectMap || value is IntMap || value is EnumValueMap) {
+            } else if (obj is StringMap || obj is ObjectMap || obj is IntMap || obj is EnumValueMap) {
                 obj.set(field, value);
             } else {
                 Reflect.setProperty(obj, field, value);

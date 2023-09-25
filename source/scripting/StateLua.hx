@@ -187,15 +187,7 @@ class StateLua {
 		addCallback("getSongRating", function(songName:String = null, difficulty:Int): Float {
 			//Check availability
 			this.getLuaWeeks();
-			var storyWeek:Int = -1;
-			for (i in 0...this.weeks.length) {
-				for (songData in this.weeks[i].songs) {
-					if (songName == songData[0]) {
-						storyWeek = i;
-						break;
-					}
-				}
-			}
+			var storyWeek:Int = findWeekForSong(songName);
 			if (storyWeek == -1) return 0.0;
 			//Load difficulties and poll
 			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
@@ -205,19 +197,21 @@ class StateLua {
 		addCallback("getSongScore", function(songName:String = null, difficulty:Int): Int {
 			//Check availability
 			this.getLuaWeeks();
-			var storyWeek:Int = -1;
-			for (i in 0...this.weeks.length) {
-				for (songData in this.weeks[i].songs) {
-					if (songName == songData[0]) {
-						storyWeek = i;
-						break;
-					}
-				}
-			}
+			var storyWeek:Int = findWeekForSong(songName);
 			if (storyWeek == -1) return 0;
 			//Load difficulties and poll
 			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
 			return Highscore.getScore(songName, difficulty - 1);
+		});
+
+		addCallback("resetSongScore", function(songName:String = null, difficulty:Int) {
+			//Check availability
+			this.getLuaWeeks();
+			var storyWeek:Int = findWeekForSong(songName);
+			if (storyWeek == -1) return;
+			//Load difficulties and poll
+			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
+			Highscore.resetSong(songName, difficulty - 1);
 		});
 
 		addCallback("getWeekScore", function(weekName:String = null, difficulty:Int): Int {
@@ -234,6 +228,44 @@ class StateLua {
 			//Load difficulties and poll
 			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
 			return Highscore.getWeekScore(this.weeks[storyWeek].fileName, difficulty - 1);
+		});
+
+		addCallback("resetWeekScore", function(weekName:String = null, difficulty:Int) {
+			//Check availability
+			this.getLuaWeeks();
+			var storyWeek:Int = -1;
+			for (i in 0...this.weeks.length) {
+				if (weekName == this.weeks[i].weekName) {
+					storyWeek = i;
+					break;
+				}
+			}
+			if (storyWeek == -1) return;
+			//Load difficulties and poll
+			CoolUtil.difficulties = this.weeksLua[storyWeek].get('difficulties');
+			Highscore.resetWeek(this.weeks[storyWeek].fileName, difficulty - 1);
+		});
+
+		addCallback("getClientPreference", function(field:String = null):Dynamic {
+			if (field == null || field == '') return null;
+			@:privateAccess
+			return DynamicAccess.getStatic('ClientPrefs', field);
+		});
+
+		addCallback("setClientPreference", function(field:String = null, value:Dynamic) {
+			if (field == null || field == '') return;
+			@:privateAccess
+			DynamicAccess.setStatic('ClientPrefs', field, value);
+		});
+
+		addCallback("saveClientPreferences", function() {
+			ClientPrefs.saveSettings();
+			//trace('Preferences saved!');
+		});
+
+		addCallback("loadClientPreferences", function() {
+			ClientPrefs.loadPrefs();
+			//trace('Preferences loaded!');
 		});
 	}
 
@@ -269,6 +301,18 @@ class StateLua {
 
 	function isWeekLocked(week:WeekData) {
 		return (!week.startUnlocked && week.weekBefore.length > 0 && (!StoryMenuState.weekCompleted.exists(week.weekBefore) || !StoryMenuState.weekCompleted.get(week.weekBefore)));
+	}
+
+	function findWeekForSong(songName:String) {
+		this.getLuaWeeks();
+		for (i in 0...this.weeks.length) {
+			for (songData in this.weeks[i].songs) {
+				if (songName == songData[0]) {
+					return i;
+				}
+			}
+		}
+		return -1;
 	}
 
 	public function getSongs() {

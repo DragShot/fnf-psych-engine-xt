@@ -145,6 +145,7 @@ process = nil
 		if (lua == null) return;
         //Psych Engine
 		set(lua, 'version', MainMenuState.psychEngineVersion.trim());
+		set(lua, 'xt_version', MainMenuState.psychXtVersion.trim());
 		set(lua, 'luaDebugMode', false);
 		set(lua, 'luaDeprecatedWarnings', true);
         //Constants
