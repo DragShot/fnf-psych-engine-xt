@@ -13,12 +13,14 @@ This engine is being prepared to be the foundation of upcoming games like **Funk
 * Custom intro text lists in the mods' data folder
 * Tweaks in the Lua scripting API
 ### New in 0.6.3-xt:
-* Fixes and improvements for the Lua runtime.
+* Fixes and improvements for the Lua runtime, including callback functions that can be sent from your script to be called once a timer or tween has finished, instead of relying on external events.
+* Lua scripting support for custom game states. You can place Lua scripts with the right name in `mods/states/` in order to replace existing states (main menu, free play, story mode, etc.) or make completely new ones.
+> **Note:** You may check the [wiki](https://github.com/DragShot/fnf-psych-engine-xt/wiki) for more information about these features and how to use them.
 
 ## Planned Features
 ### New in 0.6.3-xt:
-* Lua scripting support for custom game states.
-* Some helper Lua utility scripts might come bundled with the stock files
+* Some helper Lua utility scripts might come bundled with the stock files.
+* Visual editors for stages and modcharts might be added in the future.
 
 ## Building
 If you want to build a copy of this engine by yourself, here's what you need:
@@ -41,3 +43,5 @@ Once the setup process is complete, you should be able to build this program. Ru
 Any additional code featured in this repository, and not present in Psych Engine, is licensed under the **GNU General Public License 3.0**. This means you can make use of the released executables for your FNF mod, free of any charges and compromises.
 
 However, if you wish to incorporate any functionality from this project into your own engine, or make a fork of it for customization, you will be required to post your project's sources publicly under the GPL or a license compatible with it. This is for the sake of keeping code stuff free and open; but anything other than code is not affected by this.
+
+> Written with [StackEdit](https://stackedit.io/).
